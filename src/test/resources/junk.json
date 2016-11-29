@@ -1,0 +1,21 @@
+{
+  "_ts": 1480385457074,
+  "host": "rob",
+  "app": "test-app",
+  "_type": "timed",
+  "name": "org.test.TimedFoo.doStuff",
+  "n": {
+    "count": 3,
+    "avg": 120,
+    "max": 140,
+    "sum": 360,
+    "dur": 0
+  },
+  "e": {
+    "count": 2,
+    "avg": 210,
+    "max": 220,
+    "sum": 420,
+    "dur": 0
+  }
+}

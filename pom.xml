@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.avaje.metric</groupId>
+    <artifactId>metric-elastic</artifactId>
+    <version>1.1.1-SNAPSHOT</version>
+
+
+    <parent>
+        <groupId>org.avaje</groupId>
+        <artifactId>java8-parent</artifactId>
+        <version>1.2</version>
+    </parent>
+
+    <scm>
+        <developerConnection>scm:git:git@github.com:avaje-metric/avaje-metric-elastic.git</developerConnection>
+    </scm>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>[1.7.0,1.7.99)</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.avaje.metric</groupId>
+            <artifactId>avaje-metric-core</artifactId>
+            <version>[5,6)</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.4.2</version>
+        </dependency>
+
+        <!-- TEST -->
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.0.13</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.3.3</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+</project>
