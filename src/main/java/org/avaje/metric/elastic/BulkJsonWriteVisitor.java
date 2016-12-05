@@ -47,7 +47,7 @@ class BulkJsonWriteVisitor implements MetricVisitor {
     this(2, writer, metrics, config, indexSuffix);
   }
 
-  BulkJsonWriteVisitor(int decimalPlaces, Writer writer, ReportMetrics metrics, ElasticReporterConfig config, String indexSuffix) {
+  private BulkJsonWriteVisitor(int decimalPlaces, Writer writer, ReportMetrics metrics, ElasticReporterConfig config, String indexSuffix) {
     this.decimalPlaces = decimalPlaces;
     this.buffer = writer;
     this.reportMetrics = metrics;
@@ -59,14 +59,12 @@ class BulkJsonWriteVisitor implements MetricVisitor {
 
   void write() throws IOException {
     for (Metric metric : reportMetrics.getMetrics()) {
-      appendBulkHeader();
       metric.visit(this);
-      buffer.append("\n");
     }
   }
 
   private String deriveHeader(ElasticReporterConfig config, String indexSuffix) {
-    return "{\"index\":{\"_type\":\""+config.getIndexType()+"\",\"_index\":\""+ config.getIndexPrefix() + indexSuffix +"\"}}\n";
+    return "{\"index\":{\"_type\":\""+config.getIndexType()+"\",\"_index\":\""+ config.getIndexPrefix() + indexSuffix +"\"}}";
   }
 
   private void appendBulkHeader() throws IOException {
@@ -85,23 +83,43 @@ class BulkJsonWriteVisitor implements MetricVisitor {
 
   private void writeMetricStart(String type, Metric metric) throws IOException {
 
-    buffer.append("{");
+    appendBulkHeader();
+    buffer.append("\n{");
     appendTags();
     writeHeader(config.getTypeField(), type);
     writeHeader(config.getNameField(), metric.getName().getSimpleName());
   }
 
   private void writeMetricEnd() throws IOException {
-    buffer.append("}");
+    buffer.append("}\n");
   }
 
   @Override
   public void visit(TimedMetric metric) throws IOException {
 
+    ValueStatistics normStats = metric.getCollectedSuccessStatistics();
+    ValueStatistics errorStats = metric.getCollectedErrorStatistics();
+    long count = (normStats == null) ? 0 : normStats.getCount();
+    long errCount = (errorStats == null) ? 0 : errorStats.getCount();
+
+    if (count == 0 && errCount == 0) {
+      // a bucket range with no counts at all so skip the whole metric
+      return;
+    }
+
     writeMetricStart("timed", metric);
-    writeSummary("n", metric.getCollectedSuccessStatistics());
-    buffer.append(",");
-    writeSummary("e", metric.getCollectedErrorStatistics());
+    if (metric.isBucket()) {
+      writeHeader("bucket", metric.getBucketRange());
+    }
+    if (count > 0) {
+      writeSummary("norm", normStats);
+      if (errCount > 0) {
+        buffer.append(",");
+      }
+    }
+    if (errCount > 0) {
+      writeSummary("error", errorStats);
+    }
     writeMetricEnd();
   }
 
@@ -116,7 +134,7 @@ class BulkJsonWriteVisitor implements MetricVisitor {
   public void visit(ValueMetric metric) throws IOException {
 
     writeMetricStart("value", metric);
-    writeSummary("n", metric.getCollectedStatistics());
+    writeSummary("norm", metric.getCollectedStatistics());
     writeMetricEnd();
   }
 
@@ -142,15 +160,15 @@ class BulkJsonWriteVisitor implements MetricVisitor {
   public void visit(GaugeDoubleMetric metric) throws IOException {
 
     writeMetricStart("gauge", metric);
-    writeKeyNumber("value", format(metric.getValue()));
+    writeKeyNumber("val", format(metric.getValue()));
     writeMetricEnd();
   }
 
   @Override
   public void visit(GaugeLongMetric metric) throws IOException {
 
-    writeMetricStart("gaugeCounter", metric);
-    writeKeyNumber("value", metric.getValue());
+    writeMetricStart("gaugeLong", metric);
+    writeKeyNumber("val", metric.getValue());
     writeMetricEnd();
   }
 
@@ -165,7 +183,7 @@ class BulkJsonWriteVisitor implements MetricVisitor {
 
     // valueStats == null when BucketTimedMetric and the bucket is empty
     long count = (valueStats == null) ? 0 : valueStats.getCount();
-    
+
     writeKey(prefix);
     buffer.append("{");
     writeKeyNumber("count", count);

@@ -1,5 +1,6 @@
 package org.avaje.metric.elastic;
 
+import org.avaje.metric.BucketTimedMetric;
 import org.avaje.metric.Metric;
 import org.avaje.metric.MetricManager;
 import org.avaje.metric.TimedMetric;
@@ -10,15 +11,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class HttpElasticReporterTest {
 
-  private static long NANOS_TO_MICROS = 1000L;
+  private static long MILLIS_TO_NANOS = 1000000L;
 
   @Ignore
   @Test
@@ -41,10 +39,45 @@ public class HttpElasticReporterTest {
 
     List<Metric> metrics = new ArrayList<>();
     metrics.add(createTimedMetric());
+    metrics.add(createBucketTimedMetric());
+    //metrics.add(createBucketTimedPartial());
+    //metrics.add(createBucketTimedPartialErr());
 
     long collectTime = System.currentTimeMillis();
 
     return new ReportMetrics(headerInfo, collectTime, metrics);
+  }
+
+  private BucketTimedMetric createBucketTimedMetric() {
+    BucketTimedMetric timedMetric = MetricManager.getTimedMetric("org.test.BucketTimedFoo.doStuff", 100, 1000);
+
+    timedMetric.addEventDuration(true, 80 * MILLIS_TO_NANOS);
+    timedMetric.addEventDuration(true, 225 * MILLIS_TO_NANOS); // 120 micros
+    timedMetric.addEventDuration(true, 205 * MILLIS_TO_NANOS);
+//    timedMetric.addEventDuration(true, 1505 * MILLIS_TO_NANOS);
+//    timedMetric.addEventDuration(false, 205 * MILLIS_TO_NANOS);
+//    timedMetric.addEventDuration(false, 225 * MILLIS_TO_NANOS);
+
+    timedMetric.collectStatistics();
+    return timedMetric;
+  }
+
+  private BucketTimedMetric createBucketTimedPartial() {
+    BucketTimedMetric timedMetric = MetricManager.getTimedMetric("org.test.BucketPartial.doOther", 100, 1000);
+
+    timedMetric.addEventDuration(true, 125 * MILLIS_TO_NANOS); // 120 micros
+    timedMetric.addEventDuration(false, 505 * MILLIS_TO_NANOS);
+    timedMetric.addEventDuration(true, 1505 * MILLIS_TO_NANOS);
+
+    timedMetric.collectStatistics();
+    return timedMetric;
+  }
+
+  private BucketTimedMetric createBucketTimedPartialErr() {
+    BucketTimedMetric timedMetric = MetricManager.getTimedMetric("org.test.BucketErr.justErr", 100, 1000);
+    timedMetric.addEventDuration(false, 5000 * MILLIS_TO_NANOS);
+    timedMetric.collectStatistics();
+    return timedMetric;
   }
 
   private TimedMetric createTimedMetric() {
@@ -52,13 +85,14 @@ public class HttpElasticReporterTest {
     TimedMetric metric = new DefaultTimedMetric(MetricManager.name("org.test.TimedFoo.doStuff"));
 
     // add duration times in nanos
-    metric.addEventDuration(true, 100 * NANOS_TO_MICROS); // 100 micros
-    metric.addEventDuration(true, 120 * NANOS_TO_MICROS); // 120 micros
-    metric.addEventDuration(true, 140 * NANOS_TO_MICROS);
-    metric.addEventDuration(false, 200 * NANOS_TO_MICROS);
-    metric.addEventDuration(false, 220 * NANOS_TO_MICROS);
+    metric.addEventDuration(true, 105 * MILLIS_TO_NANOS); // 100 micros
+    metric.addEventDuration(true, 125 * MILLIS_TO_NANOS); // 120 micros
+    metric.addEventDuration(true, 145 * MILLIS_TO_NANOS);
+    metric.addEventDuration(false, 205 * MILLIS_TO_NANOS);
+    metric.addEventDuration(false, 225 * MILLIS_TO_NANOS);
 
     metric.collectStatistics();
+
     return metric;
   }
 
