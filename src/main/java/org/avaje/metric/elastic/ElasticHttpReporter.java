@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
+import java.net.ConnectException;
 import java.time.LocalDate;
 
 /**
@@ -24,13 +25,16 @@ public class ElasticHttpReporter implements MetricReporter {
 
   private final OkHttpClient client = new OkHttpClient();
 
-  private final String url;
+  private final String bulkUrl;
 
   private final ElasticReporterConfig config;
 
   public ElasticHttpReporter(ElasticReporterConfig config) {
     this.config = config;
-    this.url = config.getUrl();
+    this.bulkUrl = config.getUrl() + "/_bulk";
+
+    // put the template to elastic if it is not already there
+    new TemplateApply(client, config.getUrl(), config.getTemplateName()).run();
   }
 
   /**
@@ -49,12 +53,12 @@ public class ElasticHttpReporter implements MetricReporter {
       json = writer.toString();
 
       if (logger.isTraceEnabled()) {
-        logger.trace("Sending:\n {}", json);
+        logger.trace("Sending:\n{}", json);
       }
 
       RequestBody body = RequestBody.create(JSON, json);
       Request request = new Request.Builder()
-          .url(url)
+          .url(bulkUrl)
           .post(body)
           .build();
 
@@ -62,16 +66,17 @@ public class ElasticHttpReporter implements MetricReporter {
       if (!response.isSuccessful()) {
         logger.warn("Unsuccessful sending metrics payload to server - {}", response.body().string());
         storeJsonForResend(json);
-      } else if (logger.isDebugEnabled()) {
-        logger.warn("Bulk Response - {}", response.body().string());
+      } else if (logger.isTraceEnabled()) {
+        logger.trace("Bulk Response - {}", response.body().string());
       }
 
+    } catch (ConnectException e) {
+      logger.info("Connection error sending metrics to server: " + e.getMessage());
+      storeJsonForResend(json);
+
     } catch (Exception e) {
-      // store json message in a file to resend later...
-      logger.error("Exception sending metrics to server", e);
-      if (json != null) {
-        storeJsonForResend(json);
-      }
+      logger.error("Unexpected error sending metrics to server", e);
+      storeJsonForResend(json);
     }
   }
 

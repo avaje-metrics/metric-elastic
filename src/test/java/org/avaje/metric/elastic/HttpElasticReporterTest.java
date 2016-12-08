@@ -7,8 +7,7 @@ import org.avaje.metric.TimedMetric;
 import org.avaje.metric.core.DefaultTimedMetric;
 import org.avaje.metric.report.HeaderInfo;
 import org.avaje.metric.report.ReportMetrics;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -18,12 +17,11 @@ public class HttpElasticReporterTest {
 
   private static long MILLIS_TO_NANOS = 1000000L;
 
-  @Ignore
-  @Test
+  @Test(enabled = false)
   public void testIntegrationWithLocalRepository() throws MalformedURLException {
 
     ElasticReporterConfig config = new ElasticReporterConfig()
-        .setUrl("http://127.0.0.1:9200/_bulk")
+        .setUrl("http://127.0.0.1:9200")
         .addTag("host", "rob")
         .addTag("app", "test-app");
 
