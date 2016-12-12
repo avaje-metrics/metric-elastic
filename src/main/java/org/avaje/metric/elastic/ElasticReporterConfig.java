@@ -1,5 +1,7 @@
 package org.avaje.metric.elastic;
 
+import okhttp3.OkHttpClient;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -16,7 +18,24 @@ public class ElasticReporterConfig {
   private String url = "http://localhost:9200";
   private String templateName = "metric-1";
 
+  /**
+   * Connect timeout - default 10 seconds.
+   */
+  private int connectTimeout = 10;
+
+  /**
+   * Read timeout - default 30 seconds.
+   */
+  private int readTimeout = 30;
+
+  /**
+   * Write timeout - default 30 seconds.
+   */
+  private int writeTimeout = 30;
+
   private Map<String,String> tags = new LinkedHashMap<>();
+
+  private OkHttpClient client;
 
   /**
    * Return the base url for the ElasticSearch instance.
@@ -158,5 +177,65 @@ public class ElasticReporterConfig {
    */
   public void setTemplateName(String templateName) {
     this.templateName = templateName;
+  }
+
+  /**
+   * Return the connect timeout in seconds.
+   */
+  public int getConnectTimeout() {
+    return connectTimeout;
+  }
+
+  /**
+   * Set the connect timeout in seconds.
+   */
+  public ElasticReporterConfig setConnectTimeout(int connectTimeout) {
+    this.connectTimeout = connectTimeout;
+    return this;
+  }
+
+  /**
+   * Return the read timeout in seconds.
+   */
+  public int getReadTimeout() {
+    return readTimeout;
+  }
+
+  /**
+   * Set the read timeout in seconds.
+   */
+  public ElasticReporterConfig setReadTimeout(int readTimeout) {
+    this.readTimeout = readTimeout;
+    return this;
+  }
+
+  /**
+   * Return the write timeout in seconds.
+   */
+  public int getWriteTimeout() {
+    return writeTimeout;
+  }
+
+  /**
+   * Set the write timeout in seconds.
+   */
+  public ElasticReporterConfig setWriteTimeout(int writeTimeout) {
+    this.writeTimeout = writeTimeout;
+    return this;
+  }
+
+  /**
+   * Return the client to use (If null one will be created).
+   */
+  public OkHttpClient getClient() {
+    return client;
+  }
+
+  /**
+   * Set the client to use (If not set one will be created).
+   */
+  public ElasticReporterConfig setClient(OkHttpClient client) {
+    this.client = client;
+    return this;
   }
 }

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.StringWriter;
 import java.net.ConnectException;
 import java.time.LocalDate;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Http(s) based Reporter that sends JSON formatted metrics directly to Elastic.
@@ -23,18 +24,33 @@ public class ElasticHttpReporter implements MetricReporter {
 
   private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-  private final OkHttpClient client = new OkHttpClient();
+  private final OkHttpClient client;
 
   private final String bulkUrl;
 
   private final ElasticReporterConfig config;
 
   public ElasticHttpReporter(ElasticReporterConfig config) {
+    this.client = getClient(config);
     this.config = config;
     this.bulkUrl = config.getUrl() + "/_bulk";
 
     // put the template to elastic if it is not already there
     new TemplateApply(client, config.getUrl(), config.getTemplateName()).run();
+  }
+
+  private OkHttpClient getClient(ElasticReporterConfig config) {
+
+    OkHttpClient client = config.getClient();
+    if (client != null) {
+      return client;
+    } else {
+      return new OkHttpClient.Builder()
+          .connectTimeout(config.getConnectTimeout(), TimeUnit.SECONDS)
+          .readTimeout(config.getReadTimeout(), TimeUnit.SECONDS)
+          .writeTimeout(config.getWriteTimeout(), TimeUnit.SECONDS)
+          .build();
+    }
   }
 
   /**
