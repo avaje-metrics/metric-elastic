@@ -4,6 +4,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import org.junit.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -23,7 +24,7 @@ public class TemplateApplyTest {
     apply.run();
   }
 
-  @Test
+  @Test(enabled = false)
   public void when_nullTemplate_expect_notRun() {
 
     ElasticReporterConfig config = new ElasticReporterConfig();

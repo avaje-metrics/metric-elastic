@@ -10,6 +10,7 @@ import org.avaje.metric.report.ReportMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.net.ConnectException;
 import java.time.LocalDate;
@@ -59,31 +60,34 @@ public class ElasticHttpReporter implements MetricReporter {
   @Override
   public void report(ReportMetrics reportMetrics) {
 
-    String today = today();
-    String json = null;
+    StringWriter writer = new StringWriter(1000);
+    BulkJsonWriteVisitor jsonVisitor = new BulkJsonWriteVisitor(writer, reportMetrics, config, today());
     try {
-      StringWriter writer = new StringWriter(1000);
-      BulkJsonWriteVisitor jsonVisitor = new BulkJsonWriteVisitor(writer, reportMetrics, config, today);
       jsonVisitor.write();
+    } catch (IOException e) {
+      logger.error("Failed to write Bulk JSON to send", e);
+      return;
+    }
 
-      json = writer.toString();
+    String json = writer.toString();
+    if (logger.isTraceEnabled()) {
+      logger.trace("Sending:\n{}", json);
+    }
 
-      if (logger.isTraceEnabled()) {
-        logger.trace("Sending:\n{}", json);
-      }
+    RequestBody body = RequestBody.create(JSON, json);
+    Request request = new Request.Builder()
+        .url(bulkUrl)
+        .post(body)
+        .build();
 
-      RequestBody body = RequestBody.create(JSON, json);
-      Request request = new Request.Builder()
-          .url(bulkUrl)
-          .post(body)
-          .build();
-
-      Response response = client.newCall(request).execute();
-      if (!response.isSuccessful()) {
-        logger.warn("Unsuccessful sending metrics payload to server - {}", response.body().string());
-        storeJsonForResend(json);
-      } else if (logger.isTraceEnabled()) {
-        logger.trace("Bulk Response - {}", response.body().string());
+    try {
+      try (Response response = client.newCall(request).execute()) {
+        if (!response.isSuccessful()) {
+          logger.warn("Unsuccessful sending metrics payload to server - {}", response.body().string());
+          storeJsonForResend(json);
+        } else if (logger.isTraceEnabled()) {
+          logger.trace("Bulk Response - {}", response.body().string());
+        }
       }
 
     } catch (ConnectException e) {
