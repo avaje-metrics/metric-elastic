@@ -13,7 +13,7 @@
     </parent>
 
     <scm>
-        <developerConnection>scm:git:git@github.com:avaje-metric/avaje-metric-elastic.git</developerConnection>
+      <developerConnection>scm:git:git@github.com:avaje-metric/metric-elastic.git</developerConnection>
       <tag>HEAD</tag>
   </scm>
 
@@ -22,7 +22,8 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>[1.7.0,1.7.99)</version>
+            <version>1.7.20</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
