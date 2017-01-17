@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.ConnectException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,6 +26,12 @@ public class ElasticHttpReporter implements MetricReporter {
   private static final Logger logger = LoggerFactory.getLogger(ElasticHttpReporter.class);
 
   private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+
+  private static final DateTimeFormatter todayFormat
+      = new DateTimeFormatterBuilder()
+      .appendPattern("yyyy.MM.dd")
+      .toFormatter();
+
 
   private final OkHttpClient client;
 
@@ -101,7 +109,7 @@ public class ElasticHttpReporter implements MetricReporter {
   }
 
   private String today() {
-    return LocalDate.now().toString();
+    return todayFormat.format(LocalDate.now());
   }
 
   protected void storeJsonForResend(String json) {
