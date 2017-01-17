@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
@@ -111,6 +112,10 @@ class TemplateApply {
     try {
       Response response = client.newCall(request).execute();
       return response.code() == 404;
+
+    } catch (UnknownHostException e) {
+      log.warn("UnknownHostException checking for template: {}", e.getMessage());
+      return false;
 
     } catch (IOException e) {
       log.error("failed to check if template {} exists in elasticsearch", templateName, e);

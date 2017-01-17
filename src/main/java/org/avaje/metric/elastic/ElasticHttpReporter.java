@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -97,6 +98,10 @@ public class ElasticHttpReporter implements MetricReporter {
           logger.trace("Bulk Response - {}", response.body().string());
         }
       }
+
+    } catch (UnknownHostException e) {
+      logger.info("UnknownHostException trying to sending metrics to server: " + e.getMessage());
+      storeJsonForResend(json);
 
     } catch (ConnectException e) {
       logger.info("Connection error sending metrics to server: " + e.getMessage());
