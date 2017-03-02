@@ -74,14 +74,14 @@ class TemplateApply {
           .url(url)
           .put(body).build();
 
-      Response response = client.newCall(request).execute();
-      if (response.code() == 200) {
-        log.info("PUT template:{}", templateName);
-        return true;
-
-      } else {
-        log.warn("failed to PUT template:{} response:{}", templateName, response.body().string());
-        return false;
+      try (Response response = client.newCall(request).execute()) {
+        if (response.code() == 200) {
+          log.info("PUT template:{}", templateName);
+          return true;
+        } else {
+          log.warn("failed to PUT template:{} response:{}", templateName, response.body().string());
+          return false;
+        }
       }
 
     } catch (IOException e) {
@@ -110,9 +110,9 @@ class TemplateApply {
     Request request = new Request.Builder().url(url).get().build();
 
     try {
-      Response response = client.newCall(request).execute();
-      return response.code() == 404;
-
+      try (Response response = client.newCall(request).execute()) {
+        return response.code() == 404;
+      }
     } catch (UnknownHostException e) {
       log.warn("UnknownHostException checking for template: {}", e.getMessage());
       return false;
