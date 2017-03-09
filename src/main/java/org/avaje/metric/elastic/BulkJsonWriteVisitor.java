@@ -4,9 +4,7 @@ package org.avaje.metric.elastic;
 import org.avaje.metric.BucketTimedMetric;
 import org.avaje.metric.CounterMetric;
 import org.avaje.metric.CounterStatistics;
-import org.avaje.metric.GaugeDoubleGroup;
 import org.avaje.metric.GaugeDoubleMetric;
-import org.avaje.metric.GaugeLongGroup;
 import org.avaje.metric.GaugeLongMetric;
 import org.avaje.metric.Metric;
 import org.avaje.metric.MetricVisitor;
@@ -30,8 +28,6 @@ class BulkJsonWriteVisitor implements MetricVisitor {
 
   private final Writer buffer;
 
-  //private final long collectionTime;
-
   private final ReportMetrics reportMetrics;
 
   private final String header;
@@ -39,6 +35,8 @@ class BulkJsonWriteVisitor implements MetricVisitor {
   private final ElasticReporterConfig config;
 
   private final Map<String,String> tags;
+
+  private final long epochNow = System.currentTimeMillis();
 
   /**
    * Construct with default formatting of 2 decimal places.
@@ -150,13 +148,6 @@ class BulkJsonWriteVisitor implements MetricVisitor {
   }
 
   @Override
-  public void visit(GaugeDoubleGroup gaugeMetricGroup) throws IOException {
-    for (GaugeDoubleMetric gaugeMetric : gaugeMetricGroup.getGaugeMetrics()) {
-      visit(gaugeMetric);
-    }
-  }
-
-  @Override
   public void visit(GaugeDoubleMetric metric) throws IOException {
 
     writeMetricStart("gauge", metric);
@@ -170,13 +161,6 @@ class BulkJsonWriteVisitor implements MetricVisitor {
     writeMetricStart("gaugeLong", metric);
     writeKeyNumber("val", metric.getValue());
     writeMetricEnd();
-  }
-
-  @Override
-  public void visit(GaugeLongGroup gaugeMetricGroup) throws IOException {
-    for (GaugeLongMetric gaugeMetric : gaugeMetricGroup.getGaugeMetrics()) {
-      visit(gaugeMetric);
-    }
   }
 
   private void writeSummary(String prefix, ValueStatistics valueStats) throws IOException {
@@ -243,7 +227,7 @@ class BulkJsonWriteVisitor implements MetricVisitor {
   }
 
   private long getDuration(long startTime) {
-    return Math.round((System.currentTimeMillis() - startTime) / 1000d);
+    return Math.round((epochNow - startTime) / 1000L);
   }
 
 }
