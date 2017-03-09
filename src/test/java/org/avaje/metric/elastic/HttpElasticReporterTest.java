@@ -56,7 +56,7 @@ public class HttpElasticReporterTest {
 //    timedMetric.addEventDuration(false, 205 * MILLIS_TO_NANOS);
 //    timedMetric.addEventDuration(false, 225 * MILLIS_TO_NANOS);
 
-    timedMetric.collectStatistics();
+    timedMetric.collectStatistics(new ArrayList<>());
     return timedMetric;
   }
 
@@ -67,14 +67,14 @@ public class HttpElasticReporterTest {
     timedMetric.addEventDuration(false, 505 * MILLIS_TO_NANOS);
     timedMetric.addEventDuration(true, 1505 * MILLIS_TO_NANOS);
 
-    timedMetric.collectStatistics();
+    timedMetric.collectStatistics(new ArrayList<>());
     return timedMetric;
   }
 
   private BucketTimedMetric createBucketTimedPartialErr() {
     BucketTimedMetric timedMetric = MetricManager.getTimedMetric("org.test.BucketErr.justErr", 100, 1000);
     timedMetric.addEventDuration(false, 5000 * MILLIS_TO_NANOS);
-    timedMetric.collectStatistics();
+    timedMetric.collectStatistics(new ArrayList<>());
     return timedMetric;
   }
 
@@ -89,7 +89,7 @@ public class HttpElasticReporterTest {
     metric.addEventDuration(false, 205 * MILLIS_TO_NANOS);
     metric.addEventDuration(false, 225 * MILLIS_TO_NANOS);
 
-    metric.collectStatistics();
+    metric.collectStatistics(new ArrayList<>());
 
     return metric;
   }
