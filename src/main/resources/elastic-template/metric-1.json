@@ -10,12 +10,12 @@
     "metric" : {
       "_all": { "enabled": false  },
       "properties": {
-        "type": { "type": "string", "index": "not_analyzed"},
-        "name": { "type": "string", "index": "not_analyzed"},
-        "bucket": { "type": "string", "index": "not_analyzed"},
-        "env": { "type": "string", "index": "not_analyzed"},
-        "app": { "type": "string", "index": "not_analyzed"},
-        "pod": { "type": "string", "index": "not_analyzed"},
+        "type": { "type": "keyword"},
+        "name": { "type": "keyword"},
+        "bucket": { "type": "keyword"},
+        "env": { "type": "keyword"},
+        "app": { "type": "keyword"},
+        "pod": { "type": "keyword"},
         "ts": { "type": "date"},
         "norm" : {
           "properties" : {
