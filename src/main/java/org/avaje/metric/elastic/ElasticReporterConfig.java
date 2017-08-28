@@ -19,6 +19,11 @@ public class ElasticReporterConfig {
   private String templateName = "metric-1";
 
   /**
+   * Directory holding metrics that failed to be sent at report time.
+   */
+  private String directory = "queued-metrics";
+
+  /**
    * Connect timeout - default 10 seconds.
    */
   private int connectTimeout = 10;
@@ -33,7 +38,7 @@ public class ElasticReporterConfig {
    */
   private int writeTimeout = 30;
 
-  private Map<String,String> tags = new LinkedHashMap<>();
+  private Map<String, String> tags = new LinkedHashMap<>();
 
   private OkHttpClient client;
 
@@ -57,7 +62,7 @@ public class ElasticReporterConfig {
    */
   String normalise(String url) {
     if (url.endsWith("/")) {
-      url = url.substring(0, url.length()-1);
+      url = url.substring(0, url.length() - 1);
     }
     return url;
   }
@@ -221,6 +226,21 @@ public class ElasticReporterConfig {
    */
   public ElasticReporterConfig setWriteTimeout(int writeTimeout) {
     this.writeTimeout = writeTimeout;
+    return this;
+  }
+
+  /**
+   * Return the directory to put metrics into when they fail to be sent at report time.
+   */
+  public String getDirectory() {
+    return directory;
+  }
+
+  /**
+   * Set the directory where metrics are put if they fail to be sent at report time.
+   */
+  public ElasticReporterConfig setDirectory(String directory) {
+    this.directory = directory;
     return this;
   }
 

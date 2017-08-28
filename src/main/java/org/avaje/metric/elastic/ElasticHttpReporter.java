@@ -10,13 +10,18 @@ import org.avaje.metric.report.ReportMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,10 +34,12 @@ public class ElasticHttpReporter implements MetricReporter {
   private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
   private static final DateTimeFormatter todayFormat
-      = new DateTimeFormatterBuilder()
-      .appendPattern("yyyy.MM.dd")
-      .toFormatter();
+    = new DateTimeFormatterBuilder()
+    .appendPattern("yyyy.MM.dd")
+    .toFormatter();
 
+
+  private final File directory;
 
   private final OkHttpClient client;
 
@@ -44,9 +51,18 @@ public class ElasticHttpReporter implements MetricReporter {
     this.client = getClient(config);
     this.config = config;
     this.bulkUrl = config.getUrl() + "/_bulk";
+    this.directory = checkDirectory(config.getDirectory());
 
     // put the template to elastic if it is not already there
     new TemplateApply(client, config.getUrl(), config.getTemplateName()).run();
+  }
+
+  private File checkDirectory(String directory) {
+    File dir = new File(directory);
+    if (!dir.exists() && !dir.mkdirs()) {
+      throw new IllegalStateException("Unable to access or create directory [" + directory + "]");
+    }
+    return dir;
   }
 
   private OkHttpClient getClient(ElasticReporterConfig config) {
@@ -56,10 +72,10 @@ public class ElasticHttpReporter implements MetricReporter {
       return client;
     } else {
       return new OkHttpClient.Builder()
-          .connectTimeout(config.getConnectTimeout(), TimeUnit.SECONDS)
-          .readTimeout(config.getReadTimeout(), TimeUnit.SECONDS)
-          .writeTimeout(config.getWriteTimeout(), TimeUnit.SECONDS)
-          .build();
+        .connectTimeout(config.getConnectTimeout(), TimeUnit.SECONDS)
+        .readTimeout(config.getReadTimeout(), TimeUnit.SECONDS)
+        .writeTimeout(config.getWriteTimeout(), TimeUnit.SECONDS)
+        .build();
     }
   }
 
@@ -74,28 +90,39 @@ public class ElasticHttpReporter implements MetricReporter {
     try {
       jsonVisitor.write();
     } catch (IOException e) {
-      logger.error("Failed to write Bulk JSON to send", e);
+      logger.error("Failed to write Bulk JSON for metrics", e);
       return;
     }
+    sendMetrics(writer.toString(), true);
+  }
 
-    String json = writer.toString();
+  /**
+   * Send the bulk message to ElasticSearch.
+   */
+  private void sendMetrics(String bulkMessage, boolean withQueued) {
+    String json = bulkMessage;
     if (logger.isTraceEnabled()) {
       logger.trace("Sending:\n{}", json);
     }
 
     RequestBody body = RequestBody.create(JSON, json);
     Request request = new Request.Builder()
-        .url(bulkUrl)
-        .post(body)
-        .build();
+      .url(bulkUrl)
+      .post(body)
+      .build();
 
     try {
       try (Response response = client.newCall(request).execute()) {
         if (!response.isSuccessful()) {
           logger.warn("Unsuccessful sending metrics payload to server - {}", response.body().string());
           storeJsonForResend(json);
-        } else if (logger.isTraceEnabled()) {
-          logger.trace("Bulk Response - {}", response.body().string());
+        } else {
+          if (logger.isTraceEnabled()) {
+            logger.trace("Bulk Response - {}", response.body().string());
+          }
+          if (withQueued) {
+            sendQueued();
+          }
         }
       }
 
@@ -103,14 +130,51 @@ public class ElasticHttpReporter implements MetricReporter {
       logger.info("UnknownHostException trying to sending metrics to server: " + e.getMessage());
       storeJsonForResend(json);
 
-    } catch (ConnectException e) {
+    } catch (ConnectException | SocketTimeoutException e) {
       logger.info("Connection error sending metrics to server: " + e.getMessage());
       storeJsonForResend(json);
 
     } catch (Exception e) {
-      logger.error("Unexpected error sending metrics to server", e);
+      logger.warn("Unexpected error sending metrics to server, metrics queued to be sent later", e);
       storeJsonForResend(json);
     }
+  }
+
+  /**
+   * Send any metrics files that have been queued (as they failed initial send to elasticsearch).
+   */
+  private void sendQueued() {
+
+    File[] files = directory.listFiles(pathname -> pathname.getName().endsWith(".metric"));
+    if (files == null) {
+      return;
+    }
+    for (File heldFile : files) {
+      try {
+        sendMetrics(readQueuedFile(heldFile), false);
+        if (!heldFile.delete()) {
+          logger.error("Sent but unable to deleted queued metrics file, possible duplicate metrics for file:{}", heldFile);
+        } else {
+          logger.info("Sent queued metrics file {}", heldFile.getName());
+        }
+      } catch (IOException e) {
+        // just successfully sent metrics so not really expecting this
+        logger.warn("Failed to sent queued metrics file " + heldFile.getName(), e);
+        return;
+      }
+    }
+  }
+
+  /**
+   * Read and return the content from queued metrics file.
+   */
+  private String readQueuedFile(File heldFile) throws IOException {
+    StringBuilder sb = new StringBuilder(1000);
+    List<String> lines = Files.readAllLines(heldFile.toPath());
+    for (String line : lines) {
+      sb.append(line).append("\n");
+    }
+    return sb.toString();
   }
 
   private String today() {
@@ -118,9 +182,17 @@ public class ElasticHttpReporter implements MetricReporter {
   }
 
   protected void storeJsonForResend(String json) {
-    // override this to support store and re-send 
+    try {
+      // will be unique file name
+      File out = new File(directory, "metrics-" + System.currentTimeMillis() + ".metric");
+      FileWriter fw = new FileWriter(out);
+      fw.write(json);
+      fw.flush();
+      fw.close();
+    } catch (IOException e) {
+      logger.warn("Failed to store metrics file for resending", e);
+    }
   }
-
 
   @Override
   public void cleanup() {
