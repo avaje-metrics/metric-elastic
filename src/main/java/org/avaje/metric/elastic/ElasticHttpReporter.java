@@ -85,6 +85,10 @@ public class ElasticHttpReporter implements MetricReporter {
   @Override
   public void report(ReportMetrics reportMetrics) {
 
+    if (reportMetrics.getMetrics().isEmpty()) {
+      return;
+    }
+
     StringWriter writer = new StringWriter(1000);
     BulkJsonWriteVisitor jsonVisitor = new BulkJsonWriteVisitor(writer, reportMetrics, config, today());
     try {
@@ -93,7 +97,10 @@ public class ElasticHttpReporter implements MetricReporter {
       logger.error("Failed to write Bulk JSON for metrics", e);
       return;
     }
-    sendMetrics(writer.toString(), true);
+    String bulkJson = writer.toString();
+    if (!bulkJson.isEmpty()) {
+      sendMetrics(bulkJson, true);
+    }
   }
 
   /**

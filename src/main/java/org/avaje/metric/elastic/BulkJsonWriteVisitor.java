@@ -55,10 +55,14 @@ class BulkJsonWriteVisitor implements MetricVisitor {
     this.tags = config.getTags();
   }
 
+  /**
+   * Write all the metrics and flush to the writer.
+   */
   void write() throws IOException {
     for (Metric metric : reportMetrics.getMetrics()) {
       metric.visit(this);
     }
+    buffer.flush();
   }
 
   private String deriveHeader(ElasticReporterConfig config, String indexSuffix) {
